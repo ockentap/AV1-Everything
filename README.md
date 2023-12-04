@@ -8,10 +8,12 @@ In `av1me.sh` set your desired `quality`.
 ## Requierments
 
 Debian/Ubuntu
+
 ffmpeg
 debian-devel
 
 Arch
+
 ffmpeg
 base-devel
 
