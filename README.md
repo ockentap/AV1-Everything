@@ -9,16 +9,20 @@ In `av1me.sh` set your desired `quality`.
 
 Debian/Ubuntu
 
-ffmpeg
-debian-devel
+`ffmpeg`
+`debian-devel`
 
 Arch
 
-ffmpeg
-base-devel
+`ffmpeg`
+`base-devel`
 
 ## Usage
 
 To process videos in a directory recursively, edit `dir` in `av1me_rec.sh` and run it.
 
 For single files use `av1me.sh $FILENAME`.
+
+## Tip
+Run `detox` on folders to make the filenames POSIX compliant. 
+https://github.com/dharple/detox
