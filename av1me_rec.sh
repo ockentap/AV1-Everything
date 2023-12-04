@@ -18,7 +18,7 @@
 #
 ###################################################################################################
 
-# Enter "/home/media/av1me/" script
+# Enter "/location/of/av1me" script
 av1me="./av1me.sh"
 
 # Define, which files are to be encoded (case sensitive)
