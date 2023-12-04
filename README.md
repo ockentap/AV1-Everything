@@ -1,10 +1,19 @@
 # av1me
 
-Encode any `mp4` and `mkv` videos in a folder to `webm` AV1 using ffmpeg.
+Encode any `ffmpeg supported` video in a folder to `mp4` AV1 using ffmpeg.
 
 ## Configuration
 
 In `av1me.sh` set your desired `quality`.
+## Requierments
+
+Debian/Ubuntu
+ffmpeg
+debian-devel
+
+Arch
+ffmpeg
+base-devel
 
 ## Usage
 
