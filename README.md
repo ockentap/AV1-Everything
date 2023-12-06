@@ -13,9 +13,9 @@ Encode any `ffmpeg supported` video in a folder to `AV1 codec` using ffmpeg.
 
 ## Configuration
 
-In `av1me.sh` set your desired parameters.
+In `av1me.sh` & `av1me_rec.sh` set your desired parameters.
 
-## Requierments
+## Requirements
 
 Debian/Ubuntu
 
@@ -37,4 +37,4 @@ For single files use `av1me.sh $FILENAME`.
 Run `detox` on folders to make the filenames POSIX compliant. 
 https://github.com/dharple/detox
 
-The script is able to rename files but the accuracy IRL hasnt been proven. 
+The script is able to rename files but the accuracy IRL hasn't been proven. 
