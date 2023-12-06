@@ -1,20 +1,30 @@
-# av1me
+# AV1-Everything
 
-Encode any `ffmpeg supported` video in a folder to `mp4` AV1 using ffmpeg.
+Encode any `ffmpeg supported` video in a folder to `AV1 codec` using ffmpeg.
+
+## TODO
+
+*Make the script rename files when a name conflict emerges, i.e. converting 1.mkv to 1.mp4 will overwrite any existing 1.mp4.
+
+*Better way to rename moved source files with `Non-GNU mv`, currently it uses epoch time as the filename.
+
+*Test the script more throughly for more defects.
+
 
 ## Configuration
 
-In `av1me.sh` set your desired `quality`.
+In `av1me.sh` set your desired parameters.
+
 ## Requierments
 
 Debian/Ubuntu
 
-`ffmpeg`
+`ffmpeg & ffprobe`
 `debian-devel`
 
 Arch
 
-`ffmpeg`
+`ffmpeg & ffprobe`
 `base-devel`
 
 ## Usage
@@ -26,3 +36,5 @@ For single files use `av1me.sh $FILENAME`.
 ## Tip
 Run `detox` on folders to make the filenames POSIX compliant. 
 https://github.com/dharple/detox
+
+The script is able to rename files but the accuracy IRL hasnt been proven. 
