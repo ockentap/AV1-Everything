@@ -4,11 +4,11 @@ Encode any `ffmpeg supported` video in a folder to `AV1 codec` using ffmpeg.
 
 ## TODO
 
-*Make the script rename files when a name conflict emerges, i.e. converting 1.mkv to 1.mp4 will overwrite any existing 1.mp4.
++Make the script rename files when a name conflict emerges, i.e. converting 1.mkv to 1.mp4 will overwrite any existing 1.mp4.
 
-*Better way to rename moved source files with `Non-GNU mv`, currently it uses epoch time as the filename.
++Better way to rename moved source files with `Non-GNU mv`, currently it uses epoch time as the filename.
 
-*Test the script more throughly for more defects.
++Test the script more throughly for more defects.
 
 
 ## Configuration
