@@ -10,5 +10,17 @@ conversion_log_*.jsonl
 # Intermediate scripts
 compressor_hardened.py
 
+# Deprecated bash scripts
+av1me.sh
+av1me_rec.sh
+
+# Test suite (separate utility)
+test_runner.py
+TEST_CHECKLIST.md
+TEST_CHECKLIST_RESULTS.md
+
+# Use cases (separate doc)
+USE_CASES.md
+
 # Fuzz test output
 fuzz-tests/
