@@ -1,0 +1,14 @@
+# Test artifacts and logs
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.jsonl
+conversion_log_*.txt
+conversion_log_*.jsonl
+
+# Intermediate scripts
+compressor_hardened.py
+
+# Fuzz test output
+fuzz-tests/
