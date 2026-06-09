@@ -1,26 +1,35 @@
-# Test artifacts and logs
+# Byte-compiled / optimized / DLLs
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
-*.log
-*.jsonl
-conversion_log_*.txt
-conversion_log_*.jsonl
+*.so
 
-# Intermediate scripts
+# Test artifacts
+test_av1/
+fuzz-tests/
+test-results*.jsonl
+TEST_CHECKLIST*.md
+test_runner.py
 compressor_hardened.py
 
-# Deprecated bash scripts
-av1me.sh
-av1me_rec.sh
+# Logs
+conversion_log_*.txt
+conversion_log_*.jsonl
+*.log
+*.jsonl
 
-# Test suite (separate utility)
-test_runner.py
-TEST_CHECKLIST.md
-TEST_CHECKLIST_RESULTS.md
+# Local config / state
+video_converter_config.json
+*.lock
 
-# Use cases (separate doc)
-USE_CASES.md
+# Build artifacts
+dist/
+build/
+*.egg-info/
 
-# Fuzz test output
-fuzz-tests/
+# The following are intentionally NOT gitignored —
+# they are tracked files and must remain in the repo:
+# av1me.sh
+# av1me_rec.sh
+# LICENSE
+# README.md
