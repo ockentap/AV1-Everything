@@ -502,6 +502,8 @@ def convert_to_av1_opus(file_path):
         ffmpeg_cmd = ['ffmpeg', '-y']
         if settings.get('hw_accel') in HW_ACCELS and settings.get('hw_accel') != 'software':
             ffmpeg_cmd += ['-hwaccel', settings['hw_accel']]
+        # faststart: moov atom at front of MP4 = streamable. MKV uses EBML, flag has no effect.
+        output_flags = ['-movflags', '+faststart'] if container_ext == '.mp4' else []
         ffmpeg_cmd += [
             '-i', str(renamed_file), *map_opts,
             '-c:v', settings.get('video_encoder', 'libx264'),
@@ -509,7 +511,7 @@ def convert_to_av1_opus(file_path):
             '-b:v', settings.get('video_bitrate', '0'),
             '-c:a', settings.get('audio_encoder', 'libopus'),
             '-b:a', settings.get('audio_bitrate', '128k'),
-            *codec_opts, '-map_metadata', '0',
+            *codec_opts, '-map_metadata', '0', *output_flags,
             str(temp_encoded_file_path), '-progress', 'pipe:1'
         ]
 
