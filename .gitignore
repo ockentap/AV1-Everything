@@ -27,9 +27,7 @@ dist/
 build/
 *.egg-info/
 
-# The following are intentionally NOT gitignored —
-# they are tracked files and must remain in the repo:
-# av1me.sh
-# av1me_rec.sh
-# LICENSE
-# README.md
+# Deprecated shell scripts (not tracked)
+av1me.sh
+av1me_rec.sh
+logfile.txt
