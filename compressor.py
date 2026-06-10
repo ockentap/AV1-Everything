@@ -41,26 +41,10 @@ EXIT_FATAL = 2
 
 # ── Global state ─────────────────────────────────────────────────────────────
 settings = {}
-HW_ACCELS = []
 current_process = {}
 
-# Hardware acceleration descriptions
-HW_ACCEL_INFO = {
-    'vdpau': "VDPAU: NVIDIA-specific, decoding-focused, limited encoding support.",
-    'cuda': "CUDA: NVIDIA GPU acceleration, good for NVENC encoding (H.264/H.265).",
-    'vaapi': "VAAPI: Broad Linux support (Intel/AMD), efficient for H.264/VP9.",
-    'qsv': "QSV: Intel Quick Sync, optimized for H.264/H.265 on Intel GPUs.",
-    'drm': "DRM: Linux GPU interface, used with VAAPI, not standalone.",
-    'opencl': "OpenCL: Cross-platform for filters, not primary encoding.",
-    'vulkan': "Vulkan: Modern API, supports H.264/VP9, less common."
-}
-RECOMMENDED_HW_ACCELS = ['qsv', 'vaapi', 'cuda']
-
 VIDEO_ENCODERS = {
-    'qsv': ['h264_qsv', 'hevc_qsv', 'vp9_qsv'],
-    'vaapi': ['h264_vaapi', 'vp9_vaapi', 'hevc_vaapi'],
-    'cuda': ['h264_nvenc', 'hevc_nvenc'],
-    'software': ['libx264', 'libx265', 'libvpx-vp9', 'libsvtav1']
+    'software': ['libsvtav1', 'libx264', 'libx265', 'libvpx-vp9']
 }
 AUDIO_ENCODERS = ['libopus', 'aac', 'libvorbis', 'libmp3lame']
 CRF_OPTIONS = ['20', '25', '30', '35', '40', '45', '50']
@@ -68,9 +52,6 @@ VIDEO_BITRATES = ['0', '500k', '1000k', '2000k', '3000k']
 AUDIO_BITRATES = ['64k', '96k', '128k', '192k', '256k']
 
 VIDEO_ENCODER_CODEC_MAP = {
-    'h264_qsv': 'h264', 'hevc_qsv': 'hevc', 'vp9_qsv': 'vp9',
-    'h264_vaapi': 'h264', 'vp9_vaapi': 'vp9', 'hevc_vaapi': 'hevc',
-    'h264_nvenc': 'h264', 'hevc_nvenc': 'hevc',
     'libx264': 'h264', 'libx265': 'hevc', 'libvpx-vp9': 'vp9', 'libsvtav1': 'av1'
 }
 AUDIO_ENCODER_CODEC_MAP = {
@@ -81,13 +62,12 @@ AUDIO_ENCODER_CODEC_MAP = {
 def parse_args():
     parser = argparse.ArgumentParser(
         prog="compressor.py",
-        description="AV1 video transcoder with hardware acceleration support.",
+        description="AV1 video transcoder (libsvtav1 software encoding).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   python compressor.py /path/to/videos
-  python compressor.py /path/to/videos --crf 25 --encoder libx265
-  python compressor.py /path/to/videos --hw-accel vaapi --mode advanced
+  python compressor.py /path/to/videos --crf 25
   python compressor.py --help
 
 Exit codes:
@@ -99,10 +79,6 @@ Exit codes:
     parser.add_argument('directory', nargs='?', help='Target directory to scan for video files')
     parser.add_argument('--crf', default='30', choices=CRF_OPTIONS,
                         help='Constant Rate Factor quality (lower = better, default: 30)')
-    parser.add_argument('--encoder', default=None,
-                        help=f"Video encoder. Options: {', '.join(sum(VIDEO_ENCODERS.values(), []))}")
-    parser.add_argument('--hw-accel', default=None,
-                        help=f"Hardware acceleration. Options: {', '.join(HW_ACCEL_INFO.keys())}")
     parser.add_argument('--audio-encoder', default=None,
                         dest='audio_encoder', choices=AUDIO_ENCODERS,
                         help=f"Audio encoder. Options: {', '.join(AUDIO_ENCODERS)}")
@@ -185,38 +161,6 @@ def check_ffmpeg():
             sys.exit(EXIT_FATAL)
     json_log("ffmpeg_check", found=["ffmpeg", "ffprobe"])
 
-# ── Hardware Probe ─────────────────────────────────────────────────────────────
-def probe_hw_accels():
-    global HW_ACCELS
-    try:
-        result = subprocess.run(
-            ['ffmpeg', '-hwaccels'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-            encoding='utf-8', errors='replace'
-        )
-        lines = result.stdout.strip().split('\n')[1:]
-        HW_ACCELS = [line.strip() for line in lines if line.strip()]
-        json_log("hw_accel_probe", available=HW_ACCELS)
-
-        # Only auto-select encoder if not explicitly overridden via CLI
-        if not settings.get('_encoder_overridden'):
-            for accel in ['qsv', 'vaapi', 'cuda']:
-                if accel in HW_ACCELS:
-                    settings['hw_accel'] = accel
-                    settings['video_encoder'] = VIDEO_ENCODERS.get(accel, ['libx264'])[0]
-                    json_log("hw_accel_selected", accel=accel, encoder=settings['video_encoder'])
-                    break
-            if not settings.get('hw_accel'):
-                settings['hw_accel'] = 'software'
-                settings['video_encoder'] = 'libx264'
-                json_log("hw_accel_fallback", reason="no_gpu_found", encoder='libx264')
-        else:
-            json_log("encoder_cli_override", encoder=settings['video_encoder'], hw_accel=settings.get('hw_accel'))
-    except Exception as e:
-        json_log("hw_accel_probe_error", error=str(e))
-        HW_ACCELS = []
-        settings['hw_accel'] = 'software'
-
-# ── Config Persistence ─────────────────────────────────────────────────────────
 def save_config():
     try:
         with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
@@ -500,13 +444,11 @@ def convert_to_av1_opus(file_path):
         codec_opts = ['-c:s', 'copy'] if container_ext == '.mkv' else []
 
         ffmpeg_cmd = ['ffmpeg', '-y']
-        if settings.get('hw_accel') in HW_ACCELS and settings.get('hw_accel') != 'software':
-            ffmpeg_cmd += ['-hwaccel', settings['hw_accel']]
         # faststart: moov atom at front of MP4 = streamable. MKV uses EBML, flag has no effect.
         output_flags = ['-movflags', '+faststart'] if container_ext == '.mp4' else []
         ffmpeg_cmd += [
             '-i', str(renamed_file), *map_opts,
-            '-c:v', settings.get('video_encoder', 'libx264'),
+            '-c:v', 'libsvtav1',
             '-crf', settings.get('video_crf', '30'),
             '-b:v', settings.get('video_bitrate', '0'),
             '-c:a', settings.get('audio_encoder', 'libopus'),
@@ -789,28 +731,14 @@ def curses_menu(stdscr, title, options, descriptions, recommended, selected_idx=
 
 def configure_settings(stdscr):
     global settings
-    settings.setdefault('hw_accel', None)
-    settings.setdefault('video_encoder', 'libx264')
     settings.setdefault('video_crf', '30')
     settings.setdefault('video_bitrate', '0')
     settings.setdefault('audio_encoder', 'libopus')
     settings.setdefault('audio_bitrate', '128k')
     settings.setdefault('encode_hevc', False)
     settings.setdefault('mode', 'basic')
-
-    accel_options = HW_ACCELS + ['software']
-    accel_desc = HW_ACCEL_INFO.copy()
-    accel_desc['software'] = "Software: CPU-based encoding, no hardware acceleration."
-    accel_idx = curses_menu(stdscr, "Hardware Acceleration", accel_options, accel_desc, RECOMMENDED_HW_ACCELS)
-    if accel_idx is not None:
-        settings['hw_accel'] = accel_options[accel_idx]
-        settings['video_encoder'] = VIDEO_ENCODERS.get(settings['hw_accel'], VIDEO_ENCODERS['software'])[0]
-
-    enc_options = VIDEO_ENCODERS.get(settings.get('hw_accel', 'software'), VIDEO_ENCODERS['software'])
-    enc_desc = {e: f"{e}: → {VIDEO_ENCODER_CODEC_MAP.get(e, '').upper()}" for e in enc_options}
-    enc_idx = curses_menu(stdscr, "Video Encoder", enc_options, enc_desc, [])
-    if enc_idx is not None:
-        settings['video_encoder'] = enc_options[enc_idx]
+    # Hardcoded AV1 software encoding — no hardware acceleration
+    settings['video_encoder'] = 'libsvtav1'
 
     for label, options, key in [
         ("Video CRF", CRF_OPTIONS, 'video_crf'),
@@ -867,7 +795,6 @@ def main(stdscr):
     curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
     stdscr.bkgd(' ', curses.color_pair(2))
-    probe_hw_accels()
     load_config()
     configure_settings(stdscr)
     target = get_directory(stdscr)
@@ -880,26 +807,14 @@ def run_headless(args):
     global settings
     # Verify ffmpeg/ffprobe are available (same check as curses mode)
     check_ffmpeg()
-    # Apply CLI overrides to defaults
-    settings.setdefault('hw_accel', None)
-    settings.setdefault('video_encoder', 'libx264')
+    # Hardcoded AV1 software encoding — no hardware acceleration
     settings.setdefault('video_crf', '30')
     settings.setdefault('video_bitrate', '0')
     settings.setdefault('audio_encoder', 'libopus')
     settings.setdefault('audio_bitrate', '128k')
     settings.setdefault('encode_hevc', False)
     settings.setdefault('mode', 'basic')
-
-    if args.encoder:
-        settings['video_encoder'] = args.encoder
-        # Explicit encoder override → disable hw_accel to avoid mismatch
-        settings['hw_accel'] = 'software'
-        settings['_encoder_overridden'] = True
-    else:
-        # Always force software encoding (disable HW acceleration)
-        settings['hw_accel'] = 'software'
-        settings['video_encoder'] = 'libsvtav1'
-        settings['_encoder_overridden'] = True
+    settings['video_encoder'] = 'libsvtav1'
 
     if args.audio_encoder:
         settings['audio_encoder'] = args.audio_encoder
@@ -913,7 +828,7 @@ def run_headless(args):
         settings['space_saver'] = True
 
     json_log("headless_start", args=vars(args))
-    json_log("encoder_cli_override", encoder=settings['video_encoder'], hw_accel=settings.get('hw_accel'))
+    json_log("encoder_software_av1", encoder=settings['video_encoder'])
     load_config()
     stats = search_and_convert(args.directory, dry_run=args.dry_run)
     return stats
