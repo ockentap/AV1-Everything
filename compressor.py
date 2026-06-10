@@ -890,17 +890,17 @@ def run_headless(args):
     settings.setdefault('encode_hevc', False)
     settings.setdefault('mode', 'basic')
 
-    if args.crf:
-        settings['video_crf'] = args.crf
     if args.encoder:
         settings['video_encoder'] = args.encoder
         # Explicit encoder override → disable hw_accel to avoid mismatch
         settings['hw_accel'] = 'software'
-        settings['_encoder_overridden'] = True  # signal: don't let probe overwrite
-    if args.hw_accel:
-        settings['hw_accel'] = args.hw_accel
-        settings['video_encoder'] = VIDEO_ENCODERS.get(args.hw_accel, VIDEO_ENCODERS['software'])[0]
-        settings['_encoder_overridden'] = False
+        settings['_encoder_overridden'] = True
+    else:
+        # Always force software encoding (disable HW acceleration)
+        settings['hw_accel'] = 'software'
+        settings['video_encoder'] = 'libsvtav1'
+        settings['_encoder_overridden'] = True
+
     if args.audio_encoder:
         settings['audio_encoder'] = args.audio_encoder
     if args.audio_bitrate:
@@ -913,7 +913,7 @@ def run_headless(args):
         settings['space_saver'] = True
 
     json_log("headless_start", args=vars(args))
-    probe_hw_accels()
+    json_log("encoder_cli_override", encoder=settings['video_encoder'], hw_accel=settings.get('hw_accel'))
     load_config()
     stats = search_and_convert(args.directory, dry_run=args.dry_run)
     return stats
